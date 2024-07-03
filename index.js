@@ -29,7 +29,7 @@ app.get('/computacion', async (req, res) => {
         }
     }
 });
-app.get('/computacion/:id', async (req, res) => {
+app.get('/computacion/id/:id', async (req, res) => {
     let client;
     try {
         client = await connectToDB(client);
@@ -47,12 +47,12 @@ app.get('/computacion/:id', async (req, res) => {
         }
     }
 });
-app.get('/computacion/:nombre', async (req, res) => {
+app.get('/computacion/nombre/:nombre', async (req, res) => {
     let client;
     try {
         client = await connectToDB(client);
         const db = client.db('computacion');
-        const nombre = (req.params.nombre);
+        const nombre = (req.params.nombre || '');
         console.log(nombre);
         const producto = await db.collection('Productos').findOne({nombre: nombre})
         res.json(producto);
