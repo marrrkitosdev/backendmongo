@@ -35,12 +35,14 @@ app.get('/computacion/id/:id', async (req, res) => {
         client = await connectToDB(client);
         const db = client.db('computacion');
         const productoId = parseInt(req.params.id);
-        console.log(productoId);
         const producto = await db.collection('Productos').findOne({codigo: productoId})
+        if (!producto) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
         res.json(producto);
     } catch (err) {
-        console.error("Error fetching data from MongoDB", err);
-        res.status(500).json({ error: 'Failed to fetch data' });
+        console.error("Hubo un error al recuperar los datos de nuestro sistema de datos", err);
+        res.status(500).json({ error: 'Error al recuperar datos' });
     } finally {
         if (client) {
             await disconnectToDB(client);
@@ -53,12 +55,14 @@ app.get('/computacion/nombre/:nombre', async (req, res) => {
         client = await connectToDB(client);
         const db = client.db('computacion');
         const nombre = (req.params.nombre || '');
-        console.log(nombre);
         const producto = await db.collection('Productos').findOne({nombre: nombre})
+        if (!producto) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
         res.json(producto);
     } catch (err) {
-        console.error("Error fetching data from MongoDB", err);
-        res.status(500).json({ error: 'Failed to fetch data' });
+        console.error("Hubo un error al recuperar los datos de nuestro sistema de datos", err);
+        res.status(500).json({ error: 'Error al recuperar datos' });
     } finally {
         if (client) {
             await disconnectToDB(client);
