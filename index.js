@@ -2,29 +2,7 @@ const express = require('express');
 const { MongoClient } = require('mongodb');
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-const uri = 'your_mongodb_connection_string'; // Reemplaza esto con tu URI de MongoDB
-
-async function connectToDB() {
-    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-    try {
-        await client.connect();
-        console.log("Connected successfully to MongoDB");
-        return client;
-    } catch (err) {
-        console.error("Failed to connect to MongoDB", err);
-        throw err;
-    }
-}
-
-async function disconnectToDB(client) {
-    try {
-        await client.close();
-        console.log("Disconnected from MongoDB");
-    } catch (err) {
-        console.error("Failed to disconnect from MongoDB", err);
-    }
-}
+const {connectToDB, disconnectToDB} =  require('./src/mongodb');
 
 app.use((req, res, next) => {
     res.header("Content-Type", "application/json; charset=utf-8");
@@ -32,16 +10,52 @@ app.use((req, res, next) => {
 })
 
 app.get('/', (req, res) => {
-    res.status(200).end('Hola');
+    res.status(200).end('Hola, esta es la página principal del servidor');
 });
 
 app.get('/computacion', async (req, res) => {
     let client;
     try {
-        client = await connectToDB();
+        client = await connectToDB(client);
         const db = client.db('computacion');
         const computacion = await db.collection('Productos').find().toArray();
         res.json(computacion);
+    } catch (err) {
+        console.error("Error fetching data from MongoDB", err);
+        res.status(500).json({ error: 'Failed to fetch data' });
+    } finally {
+        if (client) {
+            await disconnectToDB(client);
+        }
+    }
+});
+app.get('/computacion/:id', async (req, res) => {
+    let client;
+    try {
+        client = await connectToDB(client);
+        const db = client.db('computacion');
+        const productoId = parseInt(req.params.id);
+        console.log(productoId);
+        const producto = await db.collection('Productos').findOne({codigo: productoId})
+        res.json(producto);
+    } catch (err) {
+        console.error("Error fetching data from MongoDB", err);
+        res.status(500).json({ error: 'Failed to fetch data' });
+    } finally {
+        if (client) {
+            await disconnectToDB(client);
+        }
+    }
+});
+app.get('/computacion/:nombre', async (req, res) => {
+    let client;
+    try {
+        client = await connectToDB(client);
+        const db = client.db('computacion');
+        const nombre = (req.params.nombre);
+        console.log(nombre);
+        const producto = await db.collection('Productos').findOne({nombre: nombre})
+        res.json(producto);
     } catch (err) {
         console.error("Error fetching data from MongoDB", err);
         res.status(500).json({ error: 'Failed to fetch data' });
