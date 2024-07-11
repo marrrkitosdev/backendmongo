@@ -32,7 +32,7 @@ app.get('/computacion', async (req, res) => {
     }
 });
 
-app.get('/computacion/:value', async (req, res) => {
+app.get('/computacion/producto/:value', async (req, res) => {
     let client;
     try {
         client = await connectToDB(client);
