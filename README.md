@@ -9,34 +9,34 @@ Esta aplicación utiliza Express.js como servidor y MongoDB como base de datos p
 
 1. **Obtener todos los productos**
    - Método: GET
-   - URL: `/`
+   - URL: `/productos`
    - Descripción: Devuelve todos los productos almacenados en la base de datos.
 
 2. **Obtener producto por ID**
    - Método: GET
-   - URL: `/id/:id`
+   - URL: `/producto/id/:id`
    - Descripción: Busca y devuelve un producto específico por su ID.
 
 3. **Buscar producto por nombre**
    - Método: GET
-   - URL: `/nombre/:nombre`
+   - URL: `/producto/nombre/:nombre`
    - Descripción: Busca y devuelve un producto que coincida con el nombre proporcionado (no distingue entre mayúsculas y minúsculas).
 
 4. **Crear un nuevo producto**
    - Método: POST
-   - URL: `/computacion/create`
+   - URL: `/producto/create`
    - Descripción: Crea un nuevo producto en la base de datos.
    - Cuerpo de la solicitud (JSON): `{ "nombre": "Nombre del Producto", "precio": 100.00, "descripcion": "Descripción del producto" }`
 
 5. **Actualizar un producto existente**
    - Método: PUT
-   - URL: `/computacion/update/:id`
+   - URL: `/producto/update/:id`
    - Descripción: Actualiza un producto existente según su ID.
    - Cuerpo de la solicitud (JSON): `{ "nombre": "Nuevo Nombre", "precio": 120.00, "descripcion": "Nueva descripción" }`
 
 6. **Eliminar un producto**
    - Método: DELETE
-   - URL: `/computacion/delete/:id`
+   - URL: `/producto/delete/:id`
    - Descripción: Elimina un producto de la base de datos según su ID.
 
 ## Uso Recomendado

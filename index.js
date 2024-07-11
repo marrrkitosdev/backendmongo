@@ -11,7 +11,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.get('/', async (req, res) => {
+app.get('/productos', async (req, res) => {
     let client;
     try {
         client = await connectToDB(client);
@@ -28,7 +28,7 @@ app.get('/', async (req, res) => {
     }
 });
 
-app.get('/id/:id', async (req, res) => {
+app.get('/producto/id/:id', async (req, res) => {
     let client;
     try {
         client = await connectToDB(client);
@@ -49,7 +49,7 @@ app.get('/id/:id', async (req, res) => {
     }
 });
 
-app.get('/nombre/:nombre', async (req, res) => {
+app.get('/producto/nombre/:nombre', async (req, res) => {
     let client;
     try {
         client = await connectToDB(client);
@@ -156,7 +156,6 @@ app.delete('/producto/delete/:id', async (req, res) => {
         }
     }
 });
-
 
 app.use((req, res) => {
     res.status(404).json({ error: 'Endpoint no encontrado' });
