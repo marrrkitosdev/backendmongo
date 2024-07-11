@@ -70,6 +70,84 @@ app.get('/computacion/nombre/:nombre', async (req, res) => {
     }
 });
 
+app.post('/computacion/create', async (req, res) => {
+    const productNew = req.body;
+    console.log(productNew);
+    let client;
+
+    client = await connectToDB(client);
+    const db = client.db('computacion');
+    db.collection('Productos').insertOne(productNew).
+    then((response) => {
+        console.log("Producto agregado");
+        res.status(201).send(productNew);
+    })
+    .catch((err) => res.status(500).send("Error al crear el registro"))
+    .finally(async () => {
+      await disconnectToDB();
+    });
+})
+
+app.put('/computacion/update/:id', async (req, res) => {
+    const productUpdate = req.body;
+    const id = parseInt(req.params.id);
+    const client = await connectToDB();
+
+    if (!client){
+        res.status(500).send("Error al conectarse a MongoDB");
+        console.log("Client error");
+        return;
+    }
+
+    if (!productUpdate || Object.keys(productUpdate).length === 0){
+        res.status(400).send("Error en el formato del producto");
+        return;
+    }
+    
+    const db = client.db('computacion').collection('Productos');
+    db
+    .updateOne({codigo: id }, { $set: productUpdate })
+    .then((response) => res.status(200).json(productUpdate))
+    .catch((error) =>{
+        res.status(500).send("Error al actualizar el registro")
+        console.log(error)
+    })
+    .finally(async () => {
+      await disconnectToDB();
+    });
+});
+
+app.delete('/computacion/delete/:id', async (req, res) => {
+    const id = parseInt(req.params.id);
+    const client = await connectToDB();
+    if (!client){
+        res.status(500).send("Error al conectarse a MongoDB");
+    }
+    if (!req.params.id){
+        res.status(500).send("Error en el formato del producto");
+    }
+    client.connect()
+    .then(() => {
+        const db = client.db('computacion').collection('Productos');
+        return db.deleteOne({codigo: id});
+    })
+    .then((result) => {
+        if (result.deletedCount === 0){
+            res.status(404).send("No se encontro el producto con el id: ", id);
+        } else{
+            console.log("Producto eliminado")
+            res.status(204).send();
+        }
+    })
+    .catch((error) => {
+        console.error(error);
+        res.status(500).send("Error al borrar el producto");
+    })
+    .finally(async () => {
+        await disconnectToDB();
+      });
+})
+
 app.listen(PORT, () => {
     console.log(`http://localhost:${PORT}`);
 });
