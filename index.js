@@ -11,11 +11,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.get('/', (req, res) => {
-    res.status(200).end('Hola, esta es la página principal del servidor');
-});
-
-app.get('/computacion', async (req, res) => {
+app.get('/', async (req, res) => {
     let client;
     try {
         client = await connectToDB(client);
@@ -32,19 +28,35 @@ app.get('/computacion', async (req, res) => {
     }
 });
 
-app.get('/computacion/producto/:value', async (req, res) => {
+app.get('/id/:id', async (req, res) => {
     let client;
     try {
         client = await connectToDB(client);
         const db = client.db('computacion');
-        const { value } = req.params;
-        let query;
-
-        if (!isNaN(value)) {
-            query = { codigo: parseInt(value) };
-        } else {
-            query = { nombre: value };
+        const productoId = parseInt(req.params.id);
+        const producto = await db.collection('Productos').findOne({ codigo: productoId });
+        if (!producto) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
         }
+        res.json(producto);
+    } catch (err) {
+        console.error("Hubo un error al recuperar los datos de nuestro sistema de datos", err);
+        res.status(500).json({ error: 'Error al recuperar datos' });
+    } finally {
+        if (client) {
+            await disconnectToDB(client);
+        }
+    }
+});
+
+app.get('/nombre/:nombre', async (req, res) => {
+    let client;
+    try {
+        client = await connectToDB(client);
+        const db = client.db('computacion');
+        const nombre = req.params.nombre || '';
+
+        const query = { nombre: { $regex: new RegExp(nombre, 'i') } };
 
         const producto = await db.collection('Productos').findOne(query);
         if (!producto) {
@@ -61,6 +73,7 @@ app.get('/computacion/producto/:value', async (req, res) => {
     }
 });
 
+
 app.post('/computacion/create', async (req, res) => {
     const productNew = req.body;
     console.log(productNew);
@@ -69,8 +82,10 @@ app.post('/computacion/create', async (req, res) => {
     try {
         client = await connectToDB(client);
         const db = client.db('computacion');
+        const count = await db.collection('Productos').countDocuments();
+        productNew.codigo = count + 1;
+
         await db.collection('Productos').insertOne(productNew);
-        console.log("Producto agregado");
         res.status(201).send(productNew);
     } catch (err) {
         console.error("Error al crear el registro", err);
@@ -115,13 +130,13 @@ app.delete('/computacion/delete/:id', async (req, res) => {
     try {
         client = await connectToDB(client);
         const db = client.db('computacion').collection('Productos');
-        const result = await db.deleteOne({ codigo: id }).then(() => {
-            res.status(204);
-        });
+        const result = await db.deleteOne({ codigo: id });
 
         if (result.deletedCount === 0) {
             return res.status(404).send("No se encontró el producto con el id: " + id);
         }
+
+        res.status(204).send();
     } catch (error) {
         console.error("Error al borrar el producto", error);
         res.status(500).send("Error al borrar el producto");
@@ -131,6 +146,7 @@ app.delete('/computacion/delete/:id', async (req, res) => {
         }
     }
 });
+
 
 app.use((req, res) => {
     res.status(404).json({ error: 'Endpoint no encontrado' });
