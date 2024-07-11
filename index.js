@@ -2,12 +2,14 @@ const express = require('express');
 const { MongoClient } = require('mongodb');
 const app = express();
 const PORT = process.env.PORT || 3000;
-const {connectToDB, disconnectToDB} =  require('./src/mongodb');
+const { connectToDB, disconnectToDB } = require('./src/mongodb');
+
+app.use(express.json());
 
 app.use((req, res, next) => {
     res.header("Content-Type", "application/json; charset=utf-8");
     next();
-})
+});
 
 app.get('/', (req, res) => {
     res.status(200).end('Hola, esta es la página principal del servidor');
@@ -29,33 +31,22 @@ app.get('/computacion', async (req, res) => {
         }
     }
 });
-app.get('/computacion/id/:id', async (req, res) => {
+
+app.get('/computacion/:value', async (req, res) => {
     let client;
     try {
         client = await connectToDB(client);
         const db = client.db('computacion');
-        const productoId = parseInt(req.params.id);
-        const producto = await db.collection('Productos').findOne({codigo: productoId})
-        if (!producto) {
-            return res.status(404).json({ error: 'Producto no encontrado' });
+        const { value } = req.params;
+        let query;
+
+        if (!isNaN(value)) {
+            query = { codigo: parseInt(value) };
+        } else {
+            query = { nombre: value };
         }
-        res.json(producto);
-    } catch (err) {
-        console.error("Hubo un error al recuperar los datos de nuestro sistema de datos", err);
-        res.status(500).json({ error: 'Error al recuperar datos' });
-    } finally {
-        if (client) {
-            await disconnectToDB(client);
-        }
-    }
-});
-app.get('/computacion/nombre/:nombre', async (req, res) => {
-    let client;
-    try {
-        client = await connectToDB(client);
-        const db = client.db('computacion');
-        const nombre = (req.params.nombre || '');
-        const producto = await db.collection('Productos').findOne({nombre: nombre})
+
+        const producto = await db.collection('Productos').findOne(query);
         if (!producto) {
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
@@ -75,78 +66,80 @@ app.post('/computacion/create', async (req, res) => {
     console.log(productNew);
     let client;
 
-    client = await connectToDB(client);
-    const db = client.db('computacion');
-    db.collection('Productos').insertOne(productNew).
-    then((response) => {
+    try {
+        client = await connectToDB(client);
+        const db = client.db('computacion');
+        await db.collection('Productos').insertOne(productNew);
         console.log("Producto agregado");
         res.status(201).send(productNew);
-    })
-    .catch((err) => res.status(500).send("Error al crear el registro"))
-    .finally(async () => {
-      await disconnectToDB();
-    });
-})
+    } catch (err) {
+        console.error("Error al crear el registro", err);
+        res.status(500).send("Error al crear el registro");
+    } finally {
+        if (client) {
+            await disconnectToDB(client);
+        }
+    }
+});
 
 app.put('/computacion/update/:id', async (req, res) => {
     const productUpdate = req.body;
+    console.log(productUpdate);
     const id = parseInt(req.params.id);
-    const client = await connectToDB();
+    let client;
 
-    if (!client){
-        res.status(500).send("Error al conectarse a MongoDB");
-        console.log("Client error");
-        return;
-    }
+    try {
+        client = await connectToDB(client);
+        const db = client.db('computacion').collection('Productos');
+        const result = await db.updateOne({ codigo: id }, { $set: productUpdate });
 
-    if (!productUpdate || Object.keys(productUpdate).length === 0){
-        res.status(400).send("Error en el formato del producto");
-        return;
+        if (result.matchedCount === 0) {
+            return res.status(404).send("Producto no encontrado");
+        }
+
+        res.status(200).json(productUpdate);
+    } catch (error) {
+        console.error("Error al actualizar el registro", error);
+        res.status(500).send("Error al actualizar el registro");
+    } finally {
+        if (client) {
+            await disconnectToDB(client);
+        }
     }
-    
-    const db = client.db('computacion').collection('Productos');
-    db
-    .updateOne({codigo: id }, { $set: productUpdate })
-    .then((response) => res.status(200).json(productUpdate))
-    .catch((error) =>{
-        res.status(500).send("Error al actualizar el registro")
-        console.log(error)
-    })
-    .finally(async () => {
-      await disconnectToDB();
-    });
 });
 
 app.delete('/computacion/delete/:id', async (req, res) => {
     const id = parseInt(req.params.id);
-    const client = await connectToDB();
-    if (!client){
-        res.status(500).send("Error al conectarse a MongoDB");
-    }
-    if (!req.params.id){
-        res.status(500).send("Error en el formato del producto");
-    }
-    client.connect()
-    .then(() => {
+    let client;
+
+    try {
+        client = await connectToDB(client);
         const db = client.db('computacion').collection('Productos');
-        return db.deleteOne({codigo: id});
-    })
-    .then((result) => {
-        if (result.deletedCount === 0){
-            res.status(404).send("No se encontro el producto con el id: ", id);
-        } else{
-            console.log("Producto eliminado")
-            res.status(204).send();
+        const result = await db.deleteOne({ codigo: id }).then(() => {
+            res.status(204);
+        });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).send("No se encontró el producto con el id: " + id);
         }
-    })
-    .catch((error) => {
-        console.error(error);
+    } catch (error) {
+        console.error("Error al borrar el producto", error);
         res.status(500).send("Error al borrar el producto");
-    })
-    .finally(async () => {
-        await disconnectToDB();
-      });
-})
+    } finally {
+        if (client) {
+            await disconnectToDB(client);
+        }
+    }
+});
+
+app.use((req, res) => {
+    res.status(404).json({ error: 'Endpoint no encontrado' });
+});
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Error interno del servidor' });
+});
 
 app.listen(PORT, () => {
     console.log(`http://localhost:${PORT}`);
