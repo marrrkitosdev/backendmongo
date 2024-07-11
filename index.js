@@ -73,19 +73,29 @@ app.get('/nombre/:nombre', async (req, res) => {
     }
 });
 
+const generateUniqueCode = async (db) => {
+    let lastProduct = await db.collection('Productos').find().sort({ _id: -1 }).limit(1).toArray();
+    let lastCode = lastProduct.length > 0 ? lastProduct[0].codigo : 0;
+    return lastCode + 1;
+};
 
-app.post('/computacion/create', async (req, res) => {
+app.post('/producto/create', async (req, res) => {
     const productNew = req.body;
-    console.log(productNew);
     let client;
 
     try {
         client = await connectToDB(client);
         const db = client.db('computacion');
-        const count = await db.collection('Productos').countDocuments();
-        productNew.codigo = count + 1;
+
+        productNew.codigo = await generateUniqueCode(db);
+
+        const existingProduct = await db.collection('Productos').findOne({ codigo: productNew.codigo });
+        if (existingProduct) {
+            throw new Error('Ya existe un producto con este código');
+        }
 
         await db.collection('Productos').insertOne(productNew);
+        console.log("Producto agregado");
         res.status(201).send(productNew);
     } catch (err) {
         console.error("Error al crear el registro", err);
@@ -97,7 +107,7 @@ app.post('/computacion/create', async (req, res) => {
     }
 });
 
-app.put('/computacion/update/:id', async (req, res) => {
+app.put('/producto/update/:id', async (req, res) => {
     const productUpdate = req.body;
     console.log(productUpdate);
     const id = parseInt(req.params.id);
@@ -123,7 +133,7 @@ app.put('/computacion/update/:id', async (req, res) => {
     }
 });
 
-app.delete('/computacion/delete/:id', async (req, res) => {
+app.delete('/producto/delete/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     let client;
 
